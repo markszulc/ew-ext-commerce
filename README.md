@@ -13,7 +13,7 @@ Built with vanilla JS and [Spectrum Web Components](https://opensource.adobe.com
 - **Insert** into the page using the selected **Insert as** format (SKU text, link, block…), or copy the SKU to the clipboard
 - **Configurable insert formats** – block/HTML templates from a `commerce-templates` tab in the site config (see below)
 - **Multi-select** – tick several products (selection is kept across searches) and insert them together; block templates produce one block with a row per product
-- **Catalog connection** – read automatically from the site's commerce `config.json` (`public.default.commerce-endpoint` + `headers.all`/`headers.cs`, including path-specific overrides like `/fr/`), overridable in the settings panel, with the public Adobe Commerce demo catalog as a fallback
+- **Catalog connection** – read automatically from the site's commerce `config.json` (`public.default.commerce-endpoint` + `headers.all`/`headers.cs`, including path-specific overrides like `/fr/`), overridable in the settings panel. If neither is found, the panel asks you to configure the connection (no credentials are bundled)
 
 ## Files
 

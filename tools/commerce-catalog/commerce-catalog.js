@@ -21,17 +21,7 @@ const DEFAULT_TEMPLATES = [
   },
 ];
 
-// Public Adobe Commerce demo catalog used by the AEM commerce boilerplate.
-const DEMO_CONFIG = {
-  endpoint: 'https://www.aemshop.net/cs-graphql',
-  headers: {
-    'Magento-Environment-Id': 'f38a0de0-764b-41fa-bd2c-5bc2f3c7b39a',
-    'Magento-Website-Code': 'base',
-    'Magento-Store-Code': 'main_website_store',
-    'Magento-Store-View-Code': 'default',
-    'x-api-key': '4dfa19c9fe6f4cccade55cc5b3da94f7',
-  },
-};
+const EMPTY_CONFIG = { endpoint: '', headers: {} };
 
 const PRICE_FIELDS = `
   ... on SimpleProductView { price { final { amount { value currency } } regular { amount { value currency } } } }
@@ -396,8 +386,8 @@ async function resolveConfig({ ignoreOverride = false } = {}) {
     state.configSource = 'Site commerce config (config.json)';
     return;
   }
-  state.config = DEMO_CONFIG;
-  state.configSource = 'Adobe Commerce demo catalog (no site commerce config found)';
+  state.config = EMPTY_CONFIG;
+  state.configSource = 'Not configured (no site commerce config found)';
 }
 
 function templatesKey() {
@@ -507,6 +497,15 @@ function setStatus(kind, message) {
     if (kind === 'error') {
       status.append(el('sp-button', { variant: 'secondary', treatment: 'outline', size: 's', onClick: () => search() }, 'Try again'));
     }
+  } else if (kind === 'unconfigured') {
+    status.append(
+      el(
+        'sp-illustrated-message',
+        { heading: 'Configure commerce settings' },
+        el('div', { slot: 'description' }, message),
+      ),
+      el('sp-button', { variant: 'accent', size: 's', onClick: () => openSettings() }, 'Open settings'),
+    );
   }
 }
 
@@ -618,6 +617,10 @@ async function search({ append = false } = {}) {
     $('#result-count').textContent = '';
   }
   $('#load-more').hidden = true;
+  if (!state.config?.endpoint) {
+    setStatus('unconfigured', 'No Catalog Service connection was found in the site\'s config.json. Add the commerce endpoint and headers to the site config, or enter them in settings.');
+    return;
+  }
   setStatus('loading');
 
   const filter = state.category ? [{ attribute: 'categoryPath', eq: state.category }] : [];
