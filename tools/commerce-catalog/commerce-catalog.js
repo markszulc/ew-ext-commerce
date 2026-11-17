@@ -137,6 +137,30 @@ function pickImage(images = [], preferred = ['thumbnail', 'small_image', 'image'
   return url.startsWith('//') ? `https:${url}` : url;
 }
 
+function humanize(key) {
+  return String(key).replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/^./, (c) => c.toUpperCase());
+}
+
+// Attribute values can be scalars, arrays, objects or JSON strings.
+function formatAttrValue(value) {
+  let v = value;
+  if (typeof v === 'string' && /^\s*[[{]/.test(v)) {
+    try { v = JSON.parse(v); } catch { /* keep as string */ }
+  }
+  if (v === null || v === undefined || v === '') return '';
+  if (Array.isArray(v)) return v.map(formatAttrValue).filter(Boolean).join(', ');
+  if (typeof v === 'object') {
+    return Object.entries(v)
+      .map(([k, val]) => [k, formatAttrValue(val)])
+      .filter(([, val]) => val)
+      .map(([k, val]) => `${humanize(k)}: ${val}`)
+      .join('\n');
+  }
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  return String(v);
+}
+
 function htmlToText(html = '') {
   const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
   doc.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
@@ -611,10 +635,12 @@ async function openDetail(sku) {
       ? el('img', { className: 'detail-image', src: mainSrc, alt: product.name })
       : null;
     const description = htmlToText(product.description || product.shortDescription || '');
-    const attrs = (product.attributes || []).filter((a) => a.value !== null && a.value !== '' && !Array.isArray(a.value));
+    const attrs = (product.attributes || [])
+      .map((a) => ({ ...a, text: formatAttrValue(a.value) }))
+      .filter((a) => a.text);
     const variantsContainer = el('div');
 
-    detail.replaceChildren(
+    detail.replaceChildren(...[
       mainImg,
       mainImg && renderGallery(images, mainImg),
       el('h2', { className: 'heading' }, product.name),
@@ -635,8 +661,8 @@ async function openDetail(sku) {
       ),
       description && el('p', { className: 'description' }, description),
       product.url && el('sp-link', { href: product.url, target: '_blank', rel: 'noopener' }, 'View in storefront'),
-      attrs.length && el('h3', { className: 'section-title' }, 'Attributes'),
-      attrs.length && el('dl', { className: 'attrs' }, attrs.flatMap((a) => [el('dt', {}, a.label || a.name), el('dd', {}, String(a.value))])),
+      attrs.length > 0 && el('h3', { className: 'section-title' }, 'Attributes'),
+      attrs.length > 0 && el('dl', { className: 'attrs' }, attrs.flatMap((a) => [el('dt', {}, a.label || a.name), el('dd', {}, a.text)])),
       variantsContainer,
       el(
         'div',
@@ -644,7 +670,7 @@ async function openDetail(sku) {
         el('sp-button', { variant: 'secondary', treatment: 'outline', size: 's', onClick: () => copySku(product.sku) }, 'Copy SKU'),
         el('sp-button', { variant: 'accent', size: 's', onClick: () => insertProduct(product) }, `Insert ${currentFormat().name}`),
       ),
-    );
+    ].filter(Boolean));
     renderVariants(product, variantsContainer);
   } catch (error) {
     detail.replaceChildren(el('div', { className: 'status' }, el(
