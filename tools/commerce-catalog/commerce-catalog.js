@@ -15,6 +15,10 @@ const DEFAULT_TEMPLATES = [
     name: 'Product teaser block',
     template: '<div class="product-teaser"><div><div>sku</div><div>{{sku}}</div></div></div>',
   },
+  {
+    name: 'Commerce Card block',
+    template: '<div class="cards-commerce"><div><div>{{sku}}</div></div></div>',
+  },
 ];
 
 // Public Adobe Commerce demo catalog used by the AEM commerce boilerplate.

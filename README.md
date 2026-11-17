@@ -47,6 +47,7 @@ Add a `commerce-templates` tab to the same site config (`https://da.live/config#
 | SKU | `{{sku}}` |
 | Product link | `<p><a href="{{url}}">{{name}}</a></p>` |
 | Product teaser | `<div class="product-teaser"><div><div>sku</div><div>{{sku}}</div></div></div>` |
+| Commerce Card block | `<div class="cards-commerce"><div><div>{{sku}}</div></div></div>` |
 
 - Placeholders: `{{sku}}`, `{{name}}`, `{{price}}`, `{{url}}`, `{{urlKey}}`, `{{image}}` (values are HTML-escaped in HTML templates).
 - Plain-text templates are typed at the cursor (`actions.sendText`).
