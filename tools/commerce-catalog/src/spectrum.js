@@ -21,6 +21,7 @@ import '@spectrum-web-components/field-label/sp-field-label.js';
 import '@spectrum-web-components/help-text/sp-help-text.js';
 import '@spectrum-web-components/illustrated-message/sp-illustrated-message.js';
 import '@spectrum-web-components/link/sp-link.js';
+import '@spectrum-web-components/checkbox/sp-checkbox.js';
 
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-left.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-settings.js';

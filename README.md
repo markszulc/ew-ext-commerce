@@ -12,6 +12,7 @@ Built with vanilla JS and [Spectrum Web Components](https://opensource.adobe.com
 - **Product detail** – image gallery, price, stock, description, attributes, storefront link and variant SKUs for configurable products
 - **Insert** into the page using the selected **Insert as** format (SKU text, link, block…), or copy the SKU to the clipboard
 - **Configurable insert formats** – block/HTML templates from a `commerce-templates` tab in the site config (see below)
+- **Multi-select** – tick several products (selection is kept across searches) and insert them together; block templates produce one block with a row per product
 - **Catalog connection** – read automatically from the site's commerce `config.json` (`public.default.commerce-endpoint` + `headers.all`/`headers.cs`, including path-specific overrides like `/fr/`), overridable in the settings panel, with the public Adobe Commerce demo catalog as a fallback
 
 ## Files
@@ -52,6 +53,7 @@ Add a `commerce-templates` tab to the same site config (`https://da.live/config#
 - Placeholders: `{{sku}}`, `{{name}}`, `{{price}}`, `{{url}}`, `{{urlKey}}`, `{{image}}` (values are HTML-escaped in HTML templates).
 - Plain-text templates are typed at the cursor (`actions.sendText`).
 - HTML templates are inserted with `actions.sendHTML`. AEM block markup (`<div class="block-name variant"><div><div>cell</div>…`) is converted to a block table, the same way the Experience Workspace block library does.
+- When several products are selected, a block template's rows are repeated once per product inside a single block; other HTML templates are concatenated and text templates become one paragraph per product.
 - Without the tab, the built-in defaults above are used. Authors can also override formats for themselves in the panel's settings (stored in their browser; **Reset to site config** removes the override).
 
 ## Local development

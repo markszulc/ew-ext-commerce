@@ -92,6 +92,7 @@ const state = {
   templates: DEFAULT_TEMPLATES,
   templatesSource: '',
   formatName: localStorage.getItem(FORMAT_KEY) || '',
+  selected: new Map(),
 };
 
 /* ---------- helpers ---------- */
@@ -254,17 +255,72 @@ function toEditorHtml(html) {
 }
 
 async function insertProduct(product, format = currentFormat()) {
-  const html = isHtmlTemplate(format.template);
-  const output = fillTemplate(format.template, product, html);
+  return insertProducts([product], format);
+}
+
+// Combines several products into one output. For a block template the block's
+// rows are repeated once per product inside a single block; other HTML is
+// concatenated and plain text becomes one paragraph per product.
+function buildMultiOutput(products, format) {
+  if (!isHtmlTemplate(format.template)) {
+    if (products.length === 1) return { text: fillTemplate(format.template, products[0], false) };
+    return { html: products.map((p) => `<p>${escapeHtml(fillTemplate(format.template, p, false))}</p>`).join('') };
+  }
+  const filled = products.map((p) => fillTemplate(format.template, p, true));
+  const parse = (html) => new DOMParser().parseFromString(html, 'text/html');
+  const findBlock = (doc) => doc.body.querySelector(':scope > div[class], :scope > div > div[class]');
+  const first = parse(filled[0]);
+  const block = findBlock(first);
+  if (!block || products.length === 1) return { html: toEditorHtml(filled.join('')) };
+  filled.slice(1).forEach((html) => {
+    const other = findBlock(parse(html));
+    if (other) block.append(...other.children);
+  });
+  return { html: toEditorHtml(first.body.innerHTML) };
+}
+
+async function insertProducts(products, format = currentFormat()) {
+  if (!products.length) return false;
+  const { text, html } = buildMultiOutput(products, format);
+  const what = products.length === 1 ? products[0].sku : `${products.length} products`;
   const actions = state.sdk?.actions;
   if (actions?.sendText) {
-    if (html) actions.sendHTML(toEditorHtml(output));
-    else actions.sendText(output);
-    toast(`Inserted ${format.name} for ${product.sku}`);
-    return;
+    if (html !== undefined) actions.sendHTML(html);
+    else actions.sendText(text);
+    toast(`Inserted ${format.name} for ${what}`);
+    return true;
   }
-  await copyText(output);
-  toast(`Not in Experience Workspace – copied ${format.name} for ${product.sku}`, 'info');
+  await copyText(text ?? html);
+  toast(`Not in Experience Workspace – copied ${format.name} for ${what}`, 'info');
+  return true;
+}
+
+/* ---------- multi-select ---------- */
+
+function updateSelectionBar() {
+  const count = state.selected.size;
+  const bar = $('#selection-bar');
+  bar.hidden = count === 0;
+  document.body.classList.toggle('has-selection', count > 0);
+  $('#selection-count').textContent = `${count} selected`;
+  $('#selection-insert').textContent = `Insert ${count} as ${currentFormat()?.name || ''}`;
+  document.querySelectorAll('sp-checkbox[data-sku]').forEach((cb) => {
+    cb.checked = state.selected.has(cb.dataset.sku);
+  });
+}
+
+function toggleSelected(product, checked) {
+  if (checked) state.selected.set(product.sku, product);
+  else state.selected.delete(product.sku);
+  updateSelectionBar();
+}
+
+async function insertSelected() {
+  const inserted = await insertProducts([...state.selected.values()]);
+  if (inserted) {
+    state.selected.clear();
+    updateSelectionBar();
+  }
 }
 
 async function copySku(sku) {
@@ -489,6 +545,16 @@ function productRow(product, { onOpen, label = product.name } = {}) {
     title: 'Copy SKU',
     onClick: (e) => { e.stopPropagation(); copySku(product.sku); },
   }, el('sp-icon-copy', { slot: 'icon' }));
+  const checkbox = el('sp-checkbox', {
+    size: 's',
+    'data-sku': product.sku,
+    checked: state.selected.has(product.sku),
+    'aria-label': `Select ${product.sku}`,
+    title: 'Select to insert several products together',
+    onClick: (e) => e.stopPropagation(),
+    onKeydown: (e) => e.stopPropagation(),
+    onChange: (e) => toggleSelected(product, e.target.checked),
+  });
 
   const row = el(
     'li',
@@ -500,6 +566,7 @@ function productRow(product, { onOpen, label = product.name } = {}) {
       onClick: onOpen,
       onKeydown: onOpen ? (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); onOpen(); } } : undefined,
     },
+    checkbox,
     thumbnail(product),
     el(
       'div',
@@ -793,7 +860,13 @@ function bindEvents() {
   $('#format').addEventListener('change', (e) => {
     state.formatName = e.target.value;
     localStorage.setItem(FORMAT_KEY, state.formatName);
+    updateSelectionBar();
   });
+  $('#selection-clear').addEventListener('click', () => {
+    state.selected.clear();
+    updateSelectionBar();
+  });
+  $('#selection-insert').addEventListener('click', insertSelected);
   $('#sort').addEventListener('change', (e) => {
     state.sort = e.target.value;
     search();
